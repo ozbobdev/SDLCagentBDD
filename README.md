@@ -100,11 +100,12 @@ Agents help Product Owners capture change requests, create GitHub projects/issue
 - [ ] Save screenshots under `screenshots/` and reference in Product Catalog.
 
 ## Squad CLI Examples
-Run from a machine with Node.js/npm installed and GitHub Copilot CLI authenticated:
+Run from a machine with Node.js/npm installed:
 ```bash
 # Install the Squad CLI tooling globally
 npm install -g @bradygaster/squad-cli
 
-# Start the squad agent; --yolo enables non-interactive execution defaults
+# Authenticate/install GitHub Copilot CLI separately (provides the `copilot` executable),
+# then start the squad agent; --yolo enables non-interactive execution defaults
 copilot --agent squad --yolo
 ```
