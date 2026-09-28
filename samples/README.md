@@ -21,7 +21,7 @@ This folder contains a sample squad and a sample application to demonstrate the 
 - **Angular web**
   - Angular app scaffolded with Angular CLI.
   - Component playground and Theme sandbox.
-  - Cypress for UI sandbox tests and screenshot capture.
+  - Optional Cypress setup for UI sandbox tests and screenshot capture (see commands below).
 
 ## Skills to add
 - BDD skill:
