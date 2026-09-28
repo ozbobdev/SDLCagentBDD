@@ -1,15 +1,10 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -18,8 +13,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+var tasks = new List<TaskItem>
+{
+    new(1, "Create sample squad", "todo"),
+    new(2, "Draft BDD scenarios", "in-progress")
+};
 
-app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+   .WithName("GetHealth");
+
+app.MapGet("/tasks", () => Results.Ok(tasks))
+   .WithName("ListTasks");
+
+app.MapPost("/tasks", (CreateTaskRequest request) =>
+{
+    var id = tasks.Count == 0 ? 1 : tasks.Max(t => t.Id) + 1;
+    var item = new TaskItem(id, request.Title, "todo");
+    tasks.Add(item);
+    return Results.Created($"/tasks/{item.Id}", item);
+})
+.WithName("CreateTask");
 
 app.Run();
+
+internal sealed record TaskItem(int Id, string Title, string Status);
+internal sealed record CreateTaskRequest(string Title);

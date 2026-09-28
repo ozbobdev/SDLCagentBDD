@@ -42,7 +42,7 @@ resource "azurerm_container_app" "orchestrator" {
   }
 
   ingress {
-    external_enabled = true
+    external_enabled = false
     target_port      = 8080
     traffic_weight {
       latest_revision = true
@@ -67,7 +67,7 @@ resource "azurerm_container_app" "bdd_agent" {
   }
 
   ingress {
-    external_enabled = true
+    external_enabled = false
     target_port      = 8080
     traffic_weight {
       latest_revision = true
