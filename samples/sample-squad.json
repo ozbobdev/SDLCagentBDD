@@ -1,0 +1,69 @@
+{
+  "name": "SDLCdocs Sample Squad",
+  "teamLeader": {
+    "role": "Squad leader",
+    "name": "TBD",
+    "contact": {
+      "email": "leader@example.com",
+      "slack": "@squad-leader"
+    }
+  },
+  "roles": [
+    {
+      "role": "Product Owner",
+      "name": "TBD",
+      "contact": {
+        "email": "po@example.com",
+        "slack": "@product-owner"
+      }
+    },
+    {
+      "role": "Project Manager",
+      "name": "TBD",
+      "contact": {
+        "email": "pm@example.com",
+        "slack": "@project-manager"
+      }
+    },
+    {
+      "role": "Senior Developer",
+      "name": "TBD",
+      "contact": {
+        "email": "senior-dev@example.com",
+        "slack": "@senior-dev"
+      }
+    },
+    {
+      "role": "UI Developer",
+      "name": "TBD",
+      "contact": {
+        "email": "ui-dev@example.com",
+        "slack": "@ui-dev"
+      }
+    },
+    {
+      "role": "API Developer",
+      "name": "TBD",
+      "contact": {
+        "email": "api-dev@example.com",
+        "slack": "@api-dev"
+      }
+    },
+    {
+      "role": "DB Developer",
+      "name": "TBD",
+      "contact": {
+        "email": "db-dev@example.com",
+        "slack": "@db-dev"
+      }
+    },
+    {
+      "role": "Tester",
+      "name": "TBD",
+      "contact": {
+        "email": "tester@example.com",
+        "slack": "@tester"
+      }
+    }
+  ]
+}
