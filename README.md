@@ -30,6 +30,29 @@ Install squad CLI
 Start copilot agent for squad
 - copilot --agent squad --yolo
 
+## First use (GitHub + Azure setup)
+1. Create or choose an Azure subscription for this repo.
+2. Create a service principal with rights to deploy:
+   - Agent harness resource group
+   - Sample app resource group
+   - Terraform state storage account/container
+3. Create Terraform backend storage (Azure Storage account + blob container).
+4. Add required GitHub repository secrets:
+   - `AZURE_CLIENT_ID`
+   - `AZURE_CLIENT_SECRET`
+   - `AZURE_TENANT_ID`
+   - `AZURE_SUBSCRIPTION_ID`
+   - `TF_BACKEND_RESOURCE_GROUP`
+   - `TF_BACKEND_STORAGE_ACCOUNT`
+   - `TF_BACKEND_CONTAINER`
+5. Add integration secrets if needed:
+   - `AZURE_HARNESS_API_KEY`
+   - `AZURE_STORAGE_CONNECTION_STRING`
+   - `AZURE_KEYVAULT_NAME`
+6. Run workflow:
+   - `.github/workflows/first-use-bootstrap.yml`
+   - Provide `harness_resource_group`, `sample_app_resource_group`, and container image inputs.
+
 ## How to contribute
 - Product Owners: open issues for new features using the intake template.
 - Developers: follow the Developer checklist in AGENT_PROMPT.txt.

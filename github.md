@@ -30,11 +30,31 @@ This document explains how to connect GitHub to Azure AI Harness and what secret
 - `AZURE_CLIENT_SECRET`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
+- `TF_BACKEND_RESOURCE_GROUP`
 - `AZURE_HARNESS_API_KEY` (or equivalent)
 - `AZURE_STORAGE_CONNECTION_STRING` (if workflows upload screenshots/artifacts)
 - `AZURE_KEYVAULT_NAME` (if workflows reference Key Vault)
 - `TF_BACKEND_STORAGE_ACCOUNT` and `TF_BACKEND_CONTAINER` (if using Terraform remote state)
 - `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` (alternate names used by some Terraform providers)
+
+## Azure resources required before first workflow run
+Before running GitHub Actions deployment workflows, create:
+1. **Service principal** with least-privilege roles:
+   - Contributor on target deployment resource groups
+   - Storage Blob Data Contributor on the Terraform state container
+2. **Terraform backend resources**:
+   - Resource group for Terraform state
+   - Storage account for Terraform state
+   - Blob container for Terraform state
+3. **Target resource groups**:
+   - Agent harness resource group (for Terraform-managed agent infrastructure)
+   - Sample app resource group (separate resource group for sample app deployment)
+
+## First-use workflow
+- Use `.github/workflows/first-use-bootstrap.yml` to:
+  - Validate required repository secrets
+  - Create harness and sample-app resource groups if missing
+  - Run Terraform init/plan/apply for `azure-harness/infra`
 
 ## GitHub Actions patterns
 - **Login to Azure**: use `azure/login` action with the service principal secrets.
