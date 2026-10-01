@@ -1,0 +1,13 @@
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Node artifacts
+**/node_modules/
+**/dist/
+
+# Terraform local state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl

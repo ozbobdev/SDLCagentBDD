@@ -1,0 +1,20 @@
+@dotnet_api_HostAddress = http://localhost:5157
+
+GET {{dotnet_api_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{dotnet_api_HostAddress}}/tasks
+Accept: application/json
+
+###
+
+POST {{dotnet_api_HostAddress}}/tasks
+Content-Type: application/json
+
+{
+  "title": "Implement API endpoint"
+}
+
+###

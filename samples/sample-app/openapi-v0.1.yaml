@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: Sample Tasks API
+  version: 0.1.0
+  description: Static sample responses for SDLCdocs sample app.
+servers:
+  - url: http://localhost:5000
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+  /tasks:
+    get:
+      summary: List tasks
+      operationId: listTasks
+      responses:
+        '200':
+          description: Static list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+              example:
+                - id: 1
+                  title: "Create sample squad"
+                  status: "todo"
+                - id: 2
+                  title: "Draft BDD scenarios"
+                  status: "in-progress"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        title:
+          type: string
+        status:
+          type: string
+      required: [id, title, status]
