@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: Sample Tasks API
+  version: 1.0.0
+  description: In-memory sample data API for SDLCdocs sample app.
+servers:
+  - url: http://localhost:5000
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /tasks:
+    get:
+      summary: List tasks from in-memory store
+      operationId: listTasks
+      responses:
+        '200':
+          description: Current tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      summary: Add task to in-memory store
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        title:
+          type: string
+        status:
+          type: string
+      required: [id, title, status]
+    CreateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+      required: [title]
