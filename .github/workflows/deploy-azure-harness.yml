@@ -12,6 +12,7 @@ on:
         default: "WestUS2"
 
 permissions:
+  actions: write
   id-token: write
   contents: read
 
@@ -107,3 +108,20 @@ jobs:
             echo "::add-mask::$KEY"
             az keyvault secret set --vault-name "$KV_NAME" --name harness-api-key --value "$KEY" >/dev/null
           fi
+
+      - name: Store deployment outputs as GitHub secrets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          KEY=$(az keyvault secret show --vault-name "$KV_NAME" --name harness-api-key --query value -o tsv)
+          STORAGE_CONNECTION_STRING=$(az storage account show-connection-string \
+            --name "$TF_BACKEND_STORAGE" \
+            --resource-group "$TF_BACKEND_RG" \
+            --query connectionString -o tsv)
+          [ -n "$KEY" ] || { echo "Harness API key is empty" >&2; exit 1; }
+          [ -n "$STORAGE_CONNECTION_STRING" ] || { echo "Storage connection string is empty" >&2; exit 1; }
+          echo "::add-mask::$KEY"
+          echo "::add-mask::$STORAGE_CONNECTION_STRING"
+          printf '%s' "$KEY" | gh secret set AZURE_HARNESS_API_KEY --repo "$GITHUB_REPOSITORY"
+          printf '%s' "$STORAGE_CONNECTION_STRING" | gh secret set AZURE_STORAGE_CONNECTION_STRING --repo "$GITHUB_REPOSITORY"
+          printf '%s' "$KV_NAME" | gh secret set AZURE_KEYVAULT_NAME --repo "$GITHUB_REPOSITORY"
