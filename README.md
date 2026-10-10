@@ -64,6 +64,10 @@ The Azure harness deploys two separate Azure Container Apps:
 
 This repository only references these images; it does not build or publish them. Publish both images to GHCR before deploying, and ensure each image is available to Azure Container Apps. The current Terraform configuration does not set GHCR credentials, so these package references must be publicly pullable; private GHCR packages require adding registry authentication to the deployment configuration. Both apps are configured for internal-only ingress on port 8080, so the images must provide services that listen on that port.
 
+GHCR is the current default because this project and its deployment workflow are hosted on GitHub, making GHCR a convenient home for the OCI images without adding an Azure registry to the scaffold. It is a configurable registry choice, not a Microsoft Foundry requirement. The Container Apps can use images from another registry, such as Azure Container Registry (ACR), provided the apps can pull them and any required registry authentication is configured.
+
+The image-based Container Apps are also an architectural choice. The [Microsoft Foundry Skills scenarios](https://learn.microsoft.com/en-us/azure/foundry/how-to/develop/foundry-skills-scenarios-example-prompts) describe alternatives including **hosted agents**, where Foundry Agent Service manages deployment of agent code, and **Prompt Agents**, which are configured in Foundry rather than run as these custom containers. These alternatives would require adapting the harness and deployment workflow; they are not drop-in registry replacements.
+
 The scripts and GitHub Actions workflow default to the `latest` tags above. To deploy different tags or image names, pass `-OrchestratorImage` and `-BddAgentImage` to `Invoke-SdlcDocsHarnessDeployment`, or change `ORCHESTRATOR_IMAGE` and `BDD_AGENT_IMAGE` in `.github/workflows/deploy-azure-harness.yml`. The Terraform variables are `orchestrator_image` and `bdd_agent_image`.
 
 ### Setup assumptions
