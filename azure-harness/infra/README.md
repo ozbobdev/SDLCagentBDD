@@ -1,24 +1,5 @@
-# Azure Harness Infrastructure (Terraform scaffold)
+# Legacy Azure Container Apps scaffold
 
-This folder contains a minimal Terraform scaffold for deploying an Azure AI Harness-oriented agent setup:
-- Orchestrator container app
-- BDD specialized agent container app
-- Shared resource group placeholder
+This experimental Terraform scaffold deploys two Azure Container Apps from externally supplied image references: an orchestrator and a BDD agent. It does not provision Microsoft Foundry Agent Service resources, and the repository does not contain the corresponding agent source or image build/publish workflow.
 
-## Secrets and variables
-Configure credentials through environment variables or GitHub Actions secrets documented in `/github.md`:
-- `AZURE_CLIENT_ID`
-- `AZURE_CLIENT_SECRET`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
-- `AZURE_HARNESS_API_KEY`
-
-## Quick start
-```bash
-terraform init
-terraform plan \
-  -var="resource_group_name=rg-sdlcdocs" \
-  -var="location=australiaeast" \
-  -var="orchestrator_image=ghcr.io/ozbobdev/orchestrator:latest" \
-  -var="bdd_agent_image=ghcr.io/ozbobdev/bdd-agent:latest"
-```
+The image variables are consumed by Azure Container Apps, not by Foundry. Their current defaults in the setup script and GitHub Actions workflow are not a supported Foundry deployment path. Do not use this scaffold as the Foundry setup; see the repository [README](../../README.md#microsoft-foundry-deployment-choices) for the current Prompt Agent and optional Hosted Agent paths.
