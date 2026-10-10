@@ -1,3 +1,8 @@
+<#
+.EXAMPLE
+    . .\infra\002SetupAzure.ps1
+    Invoke-SdlcDocsHarnessDeployment -TenantId $tenant -SubscriptionId $subscription -Location "WestUS2" -GitHubRepo "OzBob/AudioDownloadEpisode"
+#>
 function Invoke-SdlcDocsHarnessDeployment {
     [CmdletBinding()]
     param(
@@ -60,6 +65,26 @@ function Invoke-SdlcDocsHarnessDeployment {
             -backend-config="container_name=$TerraformBackendContainer" `
             -backend-config="key=$TerraformStateKey"
 
+        terraform init -input=false | Out-Null
+
+        # Import the resource group if it already exists in Azure but not in Terraform state
+        $rgExists = az group exists --name $HarnessResourceGroup
+        if ($rgExists -eq "true") {
+            $inState = terraform state list 2>$null | Where-Object { $_ -eq "azurerm_resource_group.agents" }
+            if (-not $inState) {
+                Write-Host "Importing existing resource group '$HarnessResourceGroup' into Terraform state..."
+                terraform import `
+                    -var="subscription_id=$SubscriptionId" `
+                    -var="tenant_id=$TenantId" `
+                    -var="resource_group_name=$HarnessResourceGroup" `
+                    -var="location=$Location" `
+                    -var="orchestrator_image=$OrchestratorImage" `
+                    -var="bdd_agent_image=$BddAgentImage" `
+                    azurerm_resource_group.agents "/subscriptions/$SubscriptionId/resourceGroups/$HarnessResourceGroup"
+                if ($LASTEXITCODE -ne 0) { throw "terraform import of resource group failed." }
+            }
+        }
+
         terraform plan `
             -var="subscription_id=$SubscriptionId" `
             -var="tenant_id=$TenantId" `
@@ -82,7 +107,21 @@ function Invoke-SdlcDocsHarnessDeployment {
     $kvExists = az keyvault list --resource-group $HarnessResourceGroup --query "[?name=='$kvName'] | length(@)" -o tsv
     if ($kvExists -eq "0") {
         Write-Host "Creating Key Vault '$kvName'..."
-        az keyvault create --name $kvName --resource-group $HarnessResourceGroup --location $Location | Out-Null
+        az keyvault create --name $kvName --resource-group $HarnessResourceGroup --location $Location --enable-rbac-authorization true | Out-Null
+    }
+
+    # Ensure the current caller can write secrets (role assignment may be missing on an existing vault)
+    $kvId = az keyvault show --name $kvName --resource-group $HarnessResourceGroup --query id -o tsv
+    $callerObjectId = az ad signed-in-user show --query id -o tsv 2>$null
+    if ([string]::IsNullOrWhiteSpace($callerObjectId)) {
+        $callerObjectId = az account show --query user.name -o tsv
+    }
+    $roleCount = az role assignment list --assignee $callerObjectId --scope $kvId --role "Key Vault Secrets Officer" --query "length(@)" -o tsv
+    if ($roleCount -eq "0") {
+        Write-Host "Assigning 'Key Vault Secrets Officer' on '$kvName'..."
+        az role assignment create --assignee $callerObjectId --role "Key Vault Secrets Officer" --scope $kvId | Out-Null
+        Write-Host "Waiting for role assignment propagation..."
+        Start-Sleep -Seconds 30
     }
 
     $harnessApiKey = ""
