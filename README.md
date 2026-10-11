@@ -7,9 +7,9 @@ Document-driven software development lifecycle repository. The workflow uses Git
 - `sub-agents.md`, `github.md` — architecture proposals and GitHub integration notes.
 - `agents/` — agent prompt material.
 - `samples/` — sample squad and sample application.
-- `infra/`, `azure-harness/` — an experimental Azure Container Apps harness scaffold; it is not a Microsoft Foundry deployment.
+- `infra/`, `azure-harness/` — Azure setup scripts and Terraform for Path A Prompt Agent support infrastructure.
 
-The repository does not currently contain a Foundry `azure.yaml`, a Foundry Prompt Agent definition, hosted-agent application source, or a container build. Do not treat the legacy harness scaffold as a reproducible Foundry deployment.
+This repository does not include hosted-agent runtime code for Path B/C. Use Path A for this repo and treat hosted-agent samples as external references.
 
 ## Local repository workflow
 
@@ -27,14 +27,80 @@ Use the Squad leader to iterate on the repository's documentation and SDLC workf
 
 The recommended Foundry starting point is a **Prompt Agent**, provided its instructions, model, and configured tools can perform the required work. The repository's GitHub/Copilot workflow remains local; creating a Prompt Agent does not grant it access to a developer's checkout, GitHub, or a test runner. Connect only the tools it needs, with appropriately scoped permissions. Move to a hosted agent only when a verified requirement needs custom application code.
 
-### Path A — Prompt Agent (recommended)
+### Path A — Prompt Agent (recommended and implemented in this repo)
 
-Prompt Agents are managed by Foundry and need no custom runtime code, container, or image registry.
+Prompt Agents are managed by Foundry and need no custom runtime code, container, or image registry. This repository includes Terraform and setup scripts to provision Azure resources and secrets for Prompt Agent access patterns.
 
 1. In the [Microsoft Foundry portal](https://ai.azure.com), create or select a Foundry project and deploy a chat-capable model. Use an account with permission to create agents in the project and provision the model.
 2. Create a Prompt Agent in that project. Define and version its instructions, select the model deployment, and configure only the tools it needs.
 3. Test it in the Foundry playground. If it must interact with GitHub or other services, first connect and test the required supported tool or MCP endpoint; do not assume repository access.
 4. For repeatable, reviewed agent-definition changes, use the Foundry SDK or REST API rather than treating a portal-only definition as source controlled.
+
+#### Provision Path A support infrastructure with Terraform
+
+Use [002SetupAzure.ps1](/c:/dev/s/ozbobdev/SDLCagentBDD/infra/002SetupAzure.ps1) to run Terraform in [azure-harness/infra/](/c:/dev/s/ozbobdev/SDLCagentBDD/azure-harness/infra/) and set keys/secrets:
+
+```powershell
+. .\infra\002SetupAzure.ps1
+Invoke-SdlcDocsHarnessDeployment `
+  -TenantId "<tenant-guid>" `
+  -SubscriptionId "<subscription-guid>" `
+  -Location "australiaeast" `
+  -GitHubRepo "ozbobdev/SDLCagentBDD"
+```
+
+The script:
+- deploys an Azure AI Foundry account (`AIServices`) + model deployment + Foundry project via Terraform,
+- reads `harness_api_key`, `harness_endpoint`, and `model_deployment_name`,
+- stores those in Key Vault,
+- sets GitHub repository secrets (including `AZURE_HARNESS_API_KEY`),
+- and sets local user environment variables by default.
+
+#### Get `AZURE_HARNESS_API_KEY` manually from Azure
+
+You can fetch the key after deployment via either route:
+
+- **Azure portal**: Azure AI Foundry account -> **Keys and Endpoint** -> copy Key 1.
+- **Azure CLI**:
+
+```bash
+az cognitiveservices account keys list \
+  --name <ai-services-account-name> \
+  --resource-group <resource-group-name>
+```
+
+- **Terraform output**:
+
+```bash
+terraform -chdir=azure-harness/infra output -raw harness_api_key
+```
+
+Then set it locally:
+
+```powershell
+[Environment]::SetEnvironmentVariable("AZURE_HARNESS_API_KEY","<value>","User")
+```
+
+#### Configure GitHub Copilot BYOK (GitHub Issues agent)
+
+To allow GitHub-side Copilot workflows to use your Azure-hosted model/key, follow the official BYOK flow:
+
+- GitHub BYOK docs: [Bring your own key for Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok)
+- Set repository or organization secrets referenced by your Copilot/BYOK configuration:
+  - `AZURE_HARNESS_API_KEY`
+  - `AZURE_HARNESS_ENDPOINT`
+  - `AZURE_HARNESS_MODEL_DEPLOYMENT`
+- Map those secrets in your Copilot BYOK configuration exactly as described in the BYOK doc.
+
+#### Configure local developer Copilot providers
+
+For local development, set provider values from your Azure deployment:
+
+- `AZURE_HARNESS_API_KEY`
+- `AZURE_HARNESS_ENDPOINT`
+- `AZURE_HARNESS_MODEL_DEPLOYMENT`
+
+Then configure the local Copilot provider setup (Copilot CLI / VS Code) to use these BYOK values according to your team’s provider config. Keep provider configuration files out of source control when they include sensitive values.
 
 Use a coding-agent host rather than a deployed Prompt Agent when the task needs local repository access. The optional [Microsoft Foundry Skill](https://learn.microsoft.com/en-us/azure/foundry/how-to/develop/use-microsoft-foundry-skill) guides coding agents through Foundry workflows; it is not an agent runtime or a substitute for configuring agent tools. Install it with:
 
@@ -76,9 +142,9 @@ Agent choice and infrastructure provisioning are separate decisions. The `azd` h
 
 For local development, sign in interactively with `az login` and, for `azd`, `azd auth login`. Do not create a client secret just to run the local quickstart. For GitHub Actions deployment, follow Microsoft's [Hosted Agent CI/CD guidance](https://learn.microsoft.com/en-us/azure/foundry/agents/quickstarts/set-up-cicd-hosted-agent) and use its federated/OIDC identity setup instead of long-lived client secrets. Grant only the roles required by the selected Foundry and infrastructure operations. The legacy `infra/001SetupAzure.ps1` script creates a client secret; it is not needed for this Foundry workflow.
 
-## Legacy Azure Container Apps scaffold
+## Legacy hosted-agent notes
 
-`azure-harness/infra` and `infra/002SetupAzure.ps1` are a separate, experimental deployment of two Azure Container Apps. Those apps—not Foundry—consume the `orchestrator_image` and `bdd_agent_image` references. Existing script and workflow defaults point to `ghcr.io/ozbobdev/...:latest`, but this repository contains no corresponding agent sources or image build/publish workflow, and does not document registry authentication, provenance, or scanning. GHCR is therefore an existing scaffold detail, not a Foundry requirement or Microsoft recommendation. Do not use these scripts or `.github/workflows/deploy-azure-harness.yml` as the Foundry setup path.
+Path B/C (hosted agents) remain optional and external to this repository’s runtime code. Use the official hosted-agent quickstarts and samples for hosted-agent implementations..
 
 ## Further reading
 

@@ -1,77 +1,82 @@
-# GitHub Integration with Azure AI Harness and BYOM/BYOK
+# GitHub BYOK integration for Azure harness
 
-This document explains how to connect GitHub to Azure AI Harness and what secrets/credentials are required to allow Copilot or automation to execute Terraform or Bicep deployments.
+This guide documents how to connect GitHub Copilot BYOK to the Azure resources provisioned by this repository.
 
-## Goals
-- Allow GitHub Actions or Copilot-driven automation to call Azure AI Harness endpoints.
-- Allow GitHub workflows to run Terraform or Bicep to provision or update Azure resources.
-- Support BYOM (Bring Your Own Model) and BYOK (Bring Your Own Key) patterns.
+## 1) Provision Azure resources and capture outputs
 
-## Required Azure identities and tokens
-1. **Azure Service Principal** (recommended for GitHub Actions)
-   - Create a service principal with least privilege for the target subscription/resource group.
-   - Required values to store in GitHub Secrets:
-     - `AZURE_CLIENT_ID`
-     - `AZURE_CLIENT_SECRET`
-     - `AZURE_TENANT_ID`
-     - `AZURE_SUBSCRIPTION_ID`
-2. **Azure AI Harness API Key or Token**
-   - If Azure AI Harness exposes an API key for model endpoints, store it as:
-     - `AZURE_HARNESS_API_KEY` or `AZURE_AI_HARNESS_KEY`
-3. **Key Vault access**
-   - If workflows need to read secrets from Key Vault, either:
-     - Grant the service principal access to Key Vault, or
-     - Use a short-lived token flow and store only minimal secrets in GitHub.
-4. **Optional: Managed Identity**
-   - If using self-hosted runners in Azure, use a managed identity instead of client secret.
+Run [002SetupAzure.ps1](/c:/dev/s/ozbobdev/SDLCagentBDD/infra/002SetupAzure.ps1), which provisions Terraform infrastructure from [azure-harness/infra/](/c:/dev/s/ozbobdev/SDLCagentBDD/azure-harness/infra/) and sets secrets:
 
-## GitHub Secrets to set
+```powershell
+. .\infra\002SetupAzure.ps1
+Invoke-SdlcDocsHarnessDeployment `
+  -TenantId "<tenant-guid>" `
+  -SubscriptionId "<subscription-guid>" `
+  -Location "australiaeast" `
+  -GitHubRepo "ozbobdev/SDLCagentBDD"
+```
+
+Expected Terraform outputs:
+
+- `harness_api_key`
+- `harness_endpoint`
+- `model_deployment_name`
+
+The script writes those values to:
+
+- Azure Key Vault (`harness-api-key`, `harness-endpoint`, `harness-model-deployment`)
+- GitHub repository secrets
+- Local user environment variables (by default)
+
+## 2) GitHub secrets required for Copilot BYOK
+
+Set these repository secrets (the script does this automatically):
+
+- `AZURE_HARNESS_API_KEY`
+- `AZURE_HARNESS_ENDPOINT`
+- `AZURE_HARNESS_MODEL_DEPLOYMENT`
+- `AZURE_FOUNDRY_PROJECT_NAME`
+- `AZURE_FOUNDRY_PROJECT_ID`
+
+For Terraform backend and Azure auth (if your workflows deploy infra):
+
 - `AZURE_CLIENT_ID`
 - `AZURE_CLIENT_SECRET`
 - `AZURE_TENANT_ID`
 - `AZURE_SUBSCRIPTION_ID`
 - `TF_BACKEND_RESOURCE_GROUP`
-- `AZURE_HARNESS_API_KEY` (or equivalent)
-- `AZURE_STORAGE_CONNECTION_STRING` (if workflows upload screenshots/artifacts)
-- `AZURE_KEYVAULT_NAME` (if workflows reference Key Vault)
-- `TF_BACKEND_STORAGE_ACCOUNT` and `TF_BACKEND_CONTAINER` (if using Terraform remote state)
-- `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID` (alternate names used by some Terraform providers)
+- `TF_BACKEND_STORAGE_ACCOUNT`
+- `TF_BACKEND_CONTAINER`
 
-## Azure resources required before first deployment
-Before running deployment automation, create:
-1. **Service principal** with least-privilege roles:
-   - Contributor on target deployment resource groups
-   - Storage Blob Data Contributor on the Terraform state container
-2. **Terraform backend resources**:
-   - Resource group for Terraform state
-   - Storage account for Terraform state
-   - Blob container for Terraform state
-3. **Target resource groups**:
-   - Agent harness resource group (for Terraform-managed agent infrastructure)
-   - Sample app resource group (separate resource group for sample app deployment)
+## 3) Configure Copilot BYOK
 
-## First-use scripts
-- Use `infra/001SetupAzure.ps1` to:
-  - Create/update required Azure prerequisites
-  - Configure required GitHub secrets
-- Use `infra/002SetupAzure.ps1` to:
-  - Run Terraform init/plan/apply for `azure-harness/infra`
-  - Configure optional GitHub secrets from deployment outputs/resources
+Follow the official GitHub documentation:
 
-## GitHub Actions patterns
-- **Login to Azure**: use `azure/login` action with the service principal secrets.
-- **Terraform**: use `hashicorp/setup-terraform` and run `terraform init` with backend configured to use Azure Storage.
-- **Bicep**: use `azure/cli` to run `az deployment group create` or `az deployment sub create`.
-- **Azure AI Harness calls**: call the Harness endpoint using `curl` or a small script that uses `AZURE_HARNESS_API_KEY`.
+- [Bring your own key for Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok)
 
-## Copilot execution considerations
-- Copilot in Visual Studio will call the orchestrator endpoint; the orchestrator must have permission to call Azure AI Harness and GitHub.
-- For Copilot to trigger infra changes, the orchestrator or CI pipeline must use the service principal credentials stored in GitHub Secrets.
+When mapping BYOK values, use:
 
-## Security best practices
-- Use short-lived credentials where possible.
-- Store only non-sensitive references in repo; keep secrets in GitHub Secrets or Key Vault.
-- Limit service principal permissions to required resource groups.
-- Audit and rotate keys regularly.
+- Endpoint: `AZURE_HARNESS_ENDPOINT`
+- Key: `AZURE_HARNESS_API_KEY`
+- Deployment/model: `AZURE_HARNESS_MODEL_DEPLOYMENT`
 
-End of GitHub integration guidance.
+This enables GitHub-side Copilot agent workflows (including issue-driven flows where supported by your Copilot setup) to call the Azure-hosted model.
+
+## 4) Local developer provider configuration
+
+Each developer should set local environment variables:
+
+```powershell
+[Environment]::SetEnvironmentVariable("AZURE_HARNESS_API_KEY","<value>","User")
+[Environment]::SetEnvironmentVariable("AZURE_HARNESS_ENDPOINT","<value>","User")
+[Environment]::SetEnvironmentVariable("AZURE_HARNESS_MODEL_DEPLOYMENT","<value>","User")
+[Environment]::SetEnvironmentVariable("AZURE_FOUNDRY_PROJECT_NAME","<value>","User")
+[Environment]::SetEnvironmentVariable("AZURE_FOUNDRY_PROJECT_ID","<value>","User")
+```
+
+Then configure local Copilot provider settings (Copilot CLI / VS Code) to reference those values instead of hard-coded credentials.
+
+## Security recommendations
+
+- Do not commit keys, tokens, tfplan files, or Terraform state.
+- Prefer OIDC/federated identity in CI/CD instead of long-lived client secrets.
+- Rotate `AZURE_HARNESS_API_KEY` on a regular schedule.

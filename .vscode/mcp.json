@@ -1,0 +1,70 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github-mcp-server"
+      ]
+    },
+    "azure": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "azure-mcp"
+      ],
+      "env": {
+        "AZURE_TENANT_ID": "${env:AZURE_TENANT_ID}",
+        "AZURE_SUBSCRIPTION_ID": "${env:AZURE_SUBSCRIPTION_ID}",
+        "AZURE_CLIENT_ID": "${env:AZURE_CLIENT_ID}",
+        "AZURE_CLIENT_SECRET": "${env:AZURE_CLIENT_SECRET}"
+      }
+    },
+    "azure-ai-foundry": {
+      "command": "C:\\Users\\robma\\.local\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "msmcp-azure",
+        "azmcp",
+        "server",
+        "start"
+      ],
+      "env": {
+        "AZURE_FOUNDRY_PROJECT_ENDPOINT": "${env:AZURE_FOUNDRY_PROJECT_ENDPOINT}",
+        "AZURE_FOUNDRY_PROJECT_NAME": "${env:AZURE_FOUNDRY_PROJECT_NAME}",
+        "AZURE_HARNESS_API_KEY": "${env:AZURE_HARNESS_API_KEY}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\dev\\s\\ozbobdev\\SDLCagentBDD"
+      ]
+    },
+    "openapi": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "openapi-mcp-server",
+        "--spec",
+        "C:\\dev\\s\\ozbobdev\\SDLCagentBDD\\samples\\sample-app\\openapi-v1.0.yaml"
+      ]
+    }
+  }
+}
