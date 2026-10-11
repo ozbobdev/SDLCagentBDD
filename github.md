@@ -65,6 +65,7 @@ Before running deployment automation, create:
 - **Azure AI Harness calls**: call the Harness endpoint using `curl` or a small script that uses `AZURE_HARNESS_API_KEY`.
 
 ## Copilot execution considerations
+- Before selecting this integration, research whether GitHub Copilot Cloud Agent supports BYOK, including current availability, supported models/providers, setup requirements, and security constraints; record verified findings before proceeding.
 - Copilot in Visual Studio will call the orchestrator endpoint; the orchestrator must have permission to call Azure AI Harness and GitHub.
 - For Copilot to trigger infra changes, the orchestrator or CI pipeline must use the service principal credentials stored in GitHub Secrets.
 
