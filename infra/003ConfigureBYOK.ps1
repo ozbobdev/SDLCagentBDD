@@ -25,7 +25,7 @@ if ([string]::IsNullOrWhiteSpace($LogPath)) {
 function Write-Log {
     param([Parameter(Mandatory = $true)][string]$Message)
 
-    $entry = "{0} {1}" -f (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ"), $Message
+    $entry = "{0} {1}" -f [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"), $Message
     Add-Content -LiteralPath $LogPath -Value $entry -Encoding utf8
 }
 
