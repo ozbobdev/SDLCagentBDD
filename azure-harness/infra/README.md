@@ -8,7 +8,7 @@ This Terraform module provisions baseline Azure resources for **Path A — Promp
 - Azure AI Foundry project
 - Storage account (optional harness artifacts)
 
-The Prompt Agent itself is managed in Microsoft Foundry. Terraform here provisions the endpoint and keys that your local tooling and GitHub BYOK flow can use.
+The Prompt Agent itself is managed in Microsoft Foundry. Terraform here provisions the endpoint and keys for local Copilot SDK BYOK use and for the repository's separately approved Foundry Actions smoke test. This does not configure the model used by GitHub's hosted Copilot cloud agent.
 
 ## Key outputs
 

@@ -39,20 +39,7 @@ function Invoke-SdlcDocsHarnessDeployment {
         }
     }
 
-    function Set-GitHubSecretIfValue {
-        param([string]$Name, [string]$Value)
-
-        if ([string]::IsNullOrWhiteSpace($Value)) {
-            Write-Warning "Value for secret '$Name' was empty. Skipping."
-            return
-        }
-
-        gh secret set $Name --body $Value --repo $GitHubRepo
-        Write-Host "Updated GitHub secret '$Name'."
-    }
-
     Ensure-Command az
-    Ensure-Command gh
     Ensure-Command terraform
 
     $currentTenant = az account show --query tenantId -o tsv 2>$null
@@ -207,14 +194,6 @@ function Invoke-SdlcDocsHarnessDeployment {
     }
     if ([string]::IsNullOrWhiteSpace($storageConnectionString)) { throw "Terraform output 'storage_connection_string' is empty." }
 
-    Set-GitHubSecretIfValue -Name "AZURE_HARNESS_API_KEY" -Value $harnessApiKey
-    Set-GitHubSecretIfValue -Name "AZURE_HARNESS_ENDPOINT" -Value $harnessEndpoint
-    Set-GitHubSecretIfValue -Name "AZURE_HARNESS_MODEL_DEPLOYMENT" -Value $resolvedModelDeploymentName
-    Set-GitHubSecretIfValue -Name "AZURE_FOUNDRY_PROJECT_NAME" -Value $foundryProjectName
-    Set-GitHubSecretIfValue -Name "AZURE_FOUNDRY_PROJECT_ID" -Value $foundryProjectId
-    Set-GitHubSecretIfValue -Name "AZURE_STORAGE_CONNECTION_STRING" -Value $storageConnectionString
-    Set-GitHubSecretIfValue -Name "AZURE_KEYVAULT_NAME" -Value $kvName
-
     if ($SetLocalUserEnvironment) {
         [Environment]::SetEnvironmentVariable("AZURE_HARNESS_API_KEY", $harnessApiKey, "User")
         [Environment]::SetEnvironmentVariable("AZURE_HARNESS_ENDPOINT", $harnessEndpoint, "User")
@@ -224,9 +203,6 @@ function Invoke-SdlcDocsHarnessDeployment {
         Write-Host "Set user environment variables: AZURE_HARNESS_API_KEY, AZURE_HARNESS_ENDPOINT, AZURE_HARNESS_MODEL_DEPLOYMENT, AZURE_FOUNDRY_PROJECT_NAME, AZURE_FOUNDRY_PROJECT_ID"
     }
 
-    $existing = gh secret list --repo $GitHubRepo --json name --jq ".[].name"
-    foreach ($n in "AZURE_HARNESS_API_KEY", "AZURE_HARNESS_ENDPOINT", "AZURE_HARNESS_MODEL_DEPLOYMENT", "AZURE_FOUNDRY_PROJECT_NAME", "AZURE_FOUNDRY_PROJECT_ID", "AZURE_STORAGE_CONNECTION_STRING", "AZURE_KEYVAULT_NAME") {
-        if ($existing -notcontains $n) { throw "GitHub secret '$n' was not found after setting." }
-    }
-    Write-Host "Harness deployment complete; all GitHub secrets verified."
+    Write-Host "Harness deployment complete. No GitHub Actions or Agents secrets were changed for '$GitHubRepo'."
+    Write-Host "Use 003ConfigureBYOK.ps1 only when configuring the protected foundry-byok Actions environment."
 }

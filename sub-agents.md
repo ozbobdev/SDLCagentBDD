@@ -1,11 +1,19 @@
-# Sub Agents and Azure AI Harness Integration
+# Sub Agents and Microsoft Foundry Integration
 
-This document describes how to configure Copilot in Visual Studio (not VS Code) to use Bring Your Own Model (BYOM) via Azure AI Harness, how to design a one-agent then specialized-agent architecture, and recommended infrastructure and model choices.
+This document describes the separate Azure-hosted agent architecture and its relationship to GitHub Copilot cloud agent. The GitHub cloud agent and the Azure-hosted orchestrator have separate runtimes, credentials, model selection, and permissions.
 
 ## Overview
-- **Goal**: Provide a layered agent architecture where a generalist "orchestrator" agent handles intake and routing, and specialized agents handle tasks such as BDD authoring, GitHub project management, code analysis, screenshot analysis, and test orchestration.
-- **Platform**: Azure AI Harness (https://ai.azure.com/) as the agent hosting and model serving environment.
-- **IDE integration**: Configure Copilot in Visual Studio to call the orchestrator agent via secure endpoints and keys.
+- **Azure-hosted architecture**: A generalist orchestrator can route to specialized agents for BDD authoring, GitHub project management, code analysis, screenshot analysis, and test orchestration.
+- **Platform**: Microsoft Foundry (https://ai.azure.com/) hosts the Azure-side agents and model deployments.
+- **GitHub Copilot cloud agent**: A GitHub-managed repository coding agent for issue investigation, code/documentation changes, and pull requests under repository policy. It is not the Azure orchestrator and does not inherit its model or credentials.
+
+## GitHub Copilot cloud-agent boundary
+
+GitHub documents BYOK for the Copilot SDK, not as a way to select the model used by GitHub's hosted cloud-agent service. Keep ordinary repository work on the cloud agent's supported GitHub model configuration. Do not add the Foundry API key as an **Agents** secret: GitHub exposes those secrets as environment variables to the cloud agent.
+
+The agent may request that a maintainer run a dedicated, manually dispatched workflow. Foundry connectivity is tested only by the `foundry-byok` Actions environment, whose secrets are available to a single smoke-test step after environment approval. Azure infrastructure deployment is separate and gated by the `azure-harness-deploy` environment. A workflow approval is not permission to expose Actions secrets to the agent.
+
+See [github.md](./github.md) for the environment setup, smoke-test invocation, and current BYOK limitation.
 
 ## Agent architecture
 1. **Orchestrator agent**
@@ -19,13 +27,18 @@ This document describes how to configure Copilot in Visual Studio (not VS Code) 
    - **Screenshot agent**: crops, tags, and stores screenshots; generates references for wiki pages.
    - **CI/CD agent**: triggers Terraform/Bicep deployments and validates infra state.
 
-## Visual Studio Copilot BYOM configuration
-- Visual Studio Copilot can be configured to call a custom agent endpoint (the orchestrator) hosted in Azure AI Harness.
+## Local Copilot SDK BYOK
+
+The Copilot SDK can use a Microsoft Foundry endpoint with BYOK for a **local SDK process**. This is separate from the hosted GitHub cloud agent and from the Azure-hosted Foundry agents below. Follow the current [Copilot SDK BYOK guide](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok) for SDK provider/model compatibility.
+
+## Azure-hosted agent configuration
+
+- A separate client or integration can call a custom agent endpoint hosted in Microsoft Foundry, subject to that client's supported configuration.
 - Steps (high level):
-  1. Provision Azure AI Harness project and model endpoints.
+  1. Provision a Microsoft Foundry project and model endpoint.
   2. Create a secure API endpoint for the orchestrator agent (HTTPS, token-protected).
-  3. In Visual Studio Copilot settings, configure the "Bring Your Own Model" endpoint and provide the token or secret stored in Windows Credential Manager or Visual Studio secure settings.
-  4. Ensure the orchestrator endpoint accepts requests from the Copilot client and returns structured responses (JSON) that Copilot can render or use.
+  3. Configure the supported client or integration with a credential stored in an appropriate protected secret store.
+  4. Ensure the orchestrator endpoint accepts requests from that client and returns the response format it supports.
 
 ## Azure AI Harness project structure recommendations
 - **Project root**: `azure-harness/`

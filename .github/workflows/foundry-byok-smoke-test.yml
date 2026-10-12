@@ -1,0 +1,105 @@
+name: Foundry BYOK smoke test
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    environment: foundry-byok
+    steps:
+      - name: Call the configured Foundry deployment
+        env:
+          AZURE_HARNESS_API_KEY: ${{ secrets.AZURE_HARNESS_API_KEY }}
+          AZURE_HARNESS_ENDPOINT: ${{ secrets.AZURE_HARNESS_ENDPOINT }}
+          AZURE_HARNESS_MODEL_DEPLOYMENT: ${{ secrets.AZURE_HARNESS_MODEL_DEPLOYMENT }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          api_key = os.environ["AZURE_HARNESS_API_KEY"]
+          endpoint = os.environ["AZURE_HARNESS_ENDPOINT"].rstrip("/")
+          deployment = os.environ["AZURE_HARNESS_MODEL_DEPLOYMENT"]
+          parsed = urllib.parse.urlparse(endpoint)
+
+          if not api_key or not deployment:
+              raise SystemExit("Required Foundry environment secrets are empty.")
+          try:
+              approved_endpoint = (
+                  parsed.scheme == "https"
+                  and parsed.path in ("", "/")
+                  and not parsed.query
+                  and not parsed.username
+                  and not parsed.password
+                  and parsed.port in (None, 443)
+                  and parsed.hostname is not None
+                  and parsed.hostname.endswith(
+                      (".cognitiveservices.azure.com", ".openai.azure.com")
+                  )
+              )
+          except ValueError:
+              approved_endpoint = False
+          if not approved_endpoint:
+              raise SystemExit("Foundry endpoint is not an approved Azure OpenAI host.")
+          if not re.fullmatch(r"[A-Za-z0-9._-]+", deployment):
+              raise SystemExit("Foundry deployment name contains unsupported characters.")
+
+          url = (
+              f"{endpoint}/openai/deployments/{deployment}/chat/completions"
+              "?api-version=2024-10-21"
+          )
+          payload = json.dumps(
+              {
+                  "messages": [
+                      {"role": "user", "content": "Reply with exactly: BYOK_OK"}
+                  ],
+                  "max_tokens": 8,
+                  "temperature": 0,
+              }
+          ).encode("utf-8")
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              headers={
+                  "Content-Type": "application/json",
+                  "api-key": api_key,
+              },
+              method="POST",
+          )
+
+          class RejectRedirects(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          opener = urllib.request.build_opener(RejectRedirects)
+          try:
+              with opener.open(request, timeout=30) as response:
+                  body = json.loads(response.read())
+          except urllib.error.HTTPError as error:
+              raise SystemExit(
+                  f"Foundry request failed with HTTP {error.code}; response body withheld."
+              ) from None
+          except (urllib.error.URLError, OSError, json.JSONDecodeError):
+              raise SystemExit(
+                  "Foundry request failed; endpoint details and response body withheld."
+              ) from None
+
+          choices = body.get("choices") if isinstance(body, dict) else None
+          if (
+              not isinstance(choices, list)
+              or not choices
+              or not isinstance(choices[0], dict)
+              or not isinstance(choices[0].get("message"), dict)
+              or not isinstance(choices[0]["message"].get("content"), str)
+          ):
+              raise SystemExit("Foundry returned an unexpected response shape.")
+
+          print("Foundry BYOK smoke test passed; model response was not logged.")
+          PY

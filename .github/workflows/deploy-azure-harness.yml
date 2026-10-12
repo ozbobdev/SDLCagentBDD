@@ -1,9 +1,6 @@
 name: Deploy Azure Harness
 
 on:
-  pull_request:
-    paths:
-      - "azure-harness/**"
   workflow_dispatch:
     inputs:
       location:
@@ -12,7 +9,6 @@ on:
         default: "WestUS2"
 
 permissions:
-  actions: write
   id-token: write
   contents: read
 
@@ -37,6 +33,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: azure-harness-deploy
     concurrency: deploy-azure-harness
     defaults:
       run:
