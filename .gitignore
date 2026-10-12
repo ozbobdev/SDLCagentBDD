@@ -11,3 +11,6 @@
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+
+# Local command logs from infrastructure setup scripts
+/infra/logs/

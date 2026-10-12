@@ -1,10 +1,16 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  backend "azurerm" {}
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
+    }
+    azapi = {
+      source  = "azure/azapi"
+      version = "~> 2.0"
     }
   }
 }
@@ -15,63 +21,62 @@ provider "azurerm" {
   tenant_id       = var.tenant_id
 }
 
+provider "azapi" {}
+
 resource "azurerm_resource_group" "agents" {
   name     = var.resource_group_name
   location = var.location
 }
 
-resource "azurerm_container_app_environment" "agents" {
-  name                = "cae-sdlcdocs"
-  location            = azurerm_resource_group.agents.location
-  resource_group_name = azurerm_resource_group.agents.name
-}
+resource "azurerm_cognitive_account" "harness" {
+  name                          = var.ai_services_account_name
+  location                      = azurerm_resource_group.agents.location
+  resource_group_name           = azurerm_resource_group.agents.name
+  kind                          = "AIServices"
+  sku_name                      = var.ai_services_sku
+  custom_subdomain_name         = var.ai_services_account_name
+  local_auth_enabled            = true
+  public_network_access_enabled = true
+  project_management_enabled    = true
 
-resource "azurerm_container_app" "orchestrator" {
-  name                         = "ca-orchestrator"
-  container_app_environment_id = azurerm_container_app_environment.agents.id
-  resource_group_name          = azurerm_resource_group.agents.name
-  revision_mode                = "Single"
-
-  template {
-    container {
-      name   = "orchestrator"
-      image  = var.orchestrator_image
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = false
-    target_port      = 8080
-    traffic_weight {
-      latest_revision = true
-      percentage      = 100
-    }
+  identity {
+    type = "SystemAssigned"
   }
 }
 
-resource "azurerm_container_app" "bdd_agent" {
-  name                         = "ca-bdd-agent"
-  container_app_environment_id = azurerm_container_app_environment.agents.id
-  resource_group_name          = azurerm_resource_group.agents.name
-  revision_mode                = "Single"
+resource "azurerm_cognitive_deployment" "chat" {
+  name                 = var.model_deployment_name
+  cognitive_account_id = azurerm_cognitive_account.harness.id
 
-  template {
-    container {
-      name   = "bdd-agent"
-      image  = var.bdd_agent_image
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
+  model {
+    format  = "OpenAI"
+    name    = var.model_name
+    version = var.model_version
   }
 
-  ingress {
-    external_enabled = false
-    target_port      = 8080
-    traffic_weight {
-      latest_revision = true
-      percentage      = 100
-    }
+  sku {
+    name     = var.model_sku_name
+    capacity = var.model_capacity
   }
+}
+
+resource "azurerm_cognitive_account_project" "harness" {
+  name                 = var.foundry_project_name
+  cognitive_account_id = azurerm_cognitive_account.harness.id
+  location             = azurerm_resource_group.agents.location
+  display_name         = var.foundry_project_display_name
+  description          = var.foundry_project_description
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_storage_account" "harness" {
+  name                     = var.storage_account_name
+  resource_group_name      = azurerm_resource_group.agents.name
+  location                 = azurerm_resource_group.agents.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  min_tls_version          = "TLS1_2"
 }

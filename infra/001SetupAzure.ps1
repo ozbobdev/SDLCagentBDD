@@ -138,6 +138,7 @@ function Initialize-SdlcDocsEnvironment {
     $STORAGE_ACCOUNT_ID = az storage account show --resource-group $TF_BACKEND_RG --name $TF_BACKEND_STORAGE_ACCOUNT --query id -o tsv
     $CONTAINER_SCOPE = "$STORAGE_ACCOUNT_ID/blobServices/default/containers/$TF_BACKEND_CONTAINER"
     Ensure-RoleAssignment -ObjectId $SP_OBJECT_ID -Role "Storage Blob Data Contributor" -Scope $CONTAINER_SCOPE
+    Ensure-RoleAssignment -ObjectId $SP_OBJECT_ID -Role "Storage Account Key Operator Service Role" -Scope $STORAGE_ACCOUNT_ID
 
     Write-Host "Setting GitHub secrets in $GitHubRepo..."
     gh secret set AZURE_CLIENT_ID --body $AZURE_CLIENT_ID --repo $GitHubRepo

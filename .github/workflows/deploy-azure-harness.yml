@@ -1,9 +1,6 @@
 name: Deploy Azure Harness
 
 on:
-  pull_request:
-    paths:
-      - "azure-harness/**"
   workflow_dispatch:
     inputs:
       location:
@@ -21,10 +18,13 @@ env:
   TF_BACKEND_RG: rg-sdlcdocs-tfstate
   TF_BACKEND_STORAGE: sdlcdocstfstate001
   TF_BACKEND_CONTAINER: tfstate
-  TF_STATE_KEY: sdlcdocs.tfstate
-  KV_NAME: kv-sdlcdocs-harness
-  ORCHESTRATOR_IMAGE: ghcr.io/ozbobdev/orchestrator:latest
-  BDD_AGENT_IMAGE: ghcr.io/ozbobdev/bdd-agent:latest
+  TF_STATE_KEY: sdlcdocs-prompt-agent.tfstate
+  AI_SERVICES_ACCOUNT_NAME: aisdlcdocsharness001
+  MODEL_DEPLOYMENT_NAME: gpt-4o-mini
+  MODEL_NAME: gpt-4o-mini
+  MODEL_VERSION: 2024-07-18
+  MODEL_CAPACITY: 10
+  MODEL_SKU_NAME: GlobalStandard
   ARM_USE_OIDC: "true"
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -33,6 +33,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: azure-harness-deploy
     concurrency: deploy-azure-harness
     defaults:
       run:
@@ -48,7 +49,16 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Compute globally unique Key Vault name
+        run: echo "KV_NAME=kv-sdlcdocs-${ARM_SUBSCRIPTION_ID:0:8}" >> "$GITHUB_ENV"
+
       - uses: hashicorp/setup-terraform@v3
+
+      - name: Register resource providers
+        run: |
+          for ns in Microsoft.CognitiveServices Microsoft.Storage Microsoft.KeyVault; do
+            az provider register --namespace "$ns" --wait
+          done
 
       - name: Terraform init
         run: |
@@ -67,8 +77,12 @@ jobs:
               -var="tenant_id=$ARM_TENANT_ID" \
               -var="resource_group_name=$HARNESS_RG" \
               -var="location=$LOCATION" \
-              -var="orchestrator_image=$ORCHESTRATOR_IMAGE" \
-              -var="bdd_agent_image=$BDD_AGENT_IMAGE" \
+              -var="ai_services_account_name=$AI_SERVICES_ACCOUNT_NAME" \
+              -var="model_deployment_name=$MODEL_DEPLOYMENT_NAME" \
+              -var="model_name=$MODEL_NAME" \
+              -var="model_version=$MODEL_VERSION" \
+              -var="model_capacity=$MODEL_CAPACITY" \
+              -var="model_sku_name=$MODEL_SKU_NAME" \
               azurerm_resource_group.agents "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/$HARNESS_RG"
           fi
 
@@ -79,8 +93,12 @@ jobs:
             -var="tenant_id=$ARM_TENANT_ID" \
             -var="resource_group_name=$HARNESS_RG" \
             -var="location=$LOCATION" \
-            -var="orchestrator_image=$ORCHESTRATOR_IMAGE" \
-            -var="bdd_agent_image=$BDD_AGENT_IMAGE" \
+            -var="ai_services_account_name=$AI_SERVICES_ACCOUNT_NAME" \
+            -var="model_deployment_name=$MODEL_DEPLOYMENT_NAME" \
+            -var="model_name=$MODEL_NAME" \
+            -var="model_version=$MODEL_VERSION" \
+            -var="model_capacity=$MODEL_CAPACITY" \
+            -var="model_sku_name=$MODEL_SKU_NAME" \
             -out=tfplan
 
       - name: Terraform apply
@@ -99,11 +117,49 @@ jobs:
             sleep 30
           fi
 
-      - name: Ensure harness API key secret
+      - name: Store harness API key in Key Vault
         run: |
-          if ! az keyvault secret show --vault-name "$KV_NAME" --name harness-api-key >/dev/null 2>&1; then
-            KEY=$(terraform output -json | jq -r '.harness_api_key.value // empty')
-            [ -n "$KEY" ] || KEY=$(openssl rand -hex 16)
-            echo "::add-mask::$KEY"
-            az keyvault secret set --vault-name "$KV_NAME" --name harness-api-key --value "$KEY" >/dev/null
-          fi
+          KEY=$(terraform output -raw harness_api_key)
+          ENDPOINT=$(terraform output -raw harness_endpoint)
+          DEPLOYMENT=$(terraform output -raw model_deployment_name)
+          [ -n "$KEY" ] || { echo "Harness API key output is empty" >&2; exit 1; }
+          [ -n "$ENDPOINT" ] || { echo "Harness endpoint output is empty" >&2; exit 1; }
+          [ -n "$DEPLOYMENT" ] || { echo "Model deployment output is empty" >&2; exit 1; }
+          echo "::add-mask::$KEY"
+          az keyvault secret set --vault-name "$KV_NAME" --name harness-api-key --value "$KEY" >/dev/null
+          az keyvault secret set --vault-name "$KV_NAME" --name harness-endpoint --value "$ENDPOINT" >/dev/null
+          az keyvault secret set --vault-name "$KV_NAME" --name harness-model-deployment --value "$DEPLOYMENT" >/dev/null
+
+      # - name: Store deployment outputs as GitHub secrets
+      #   env:
+      #     # GITHUB_TOKEN cannot write Actions secrets; needs a PAT with repo "Secrets: write"
+      #     GH_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
+      #   run: |
+      #     [ -n "$GH_TOKEN" ] || { echo "Repo secret GH_SECRETS_TOKEN (PAT with Secrets: write) is required" >&2; exit 1; }
+      #     KEY=$(terraform output -raw harness_api_key)
+      #     ENDPOINT=$(terraform output -raw harness_endpoint)
+      #     DEPLOYMENT=$(terraform output -raw model_deployment_name)
+      #     FOUNDRY_PROJECT_NAME=$(terraform output -raw foundry_project_name)
+      #     FOUNDRY_PROJECT_ID=$(terraform output -raw foundry_project_id)
+      #     STORAGE_CONNECTION_STRING=$(terraform output -raw storage_connection_string)
+      #     KV_OUT="$KV_NAME"
+      #     [ -n "$KEY" ] || { echo "Harness API key is empty" >&2; exit 1; }
+      #     [ -n "$ENDPOINT" ] || { echo "Harness endpoint is empty" >&2; exit 1; }
+      #     [ -n "$DEPLOYMENT" ] || { echo "Harness model deployment is empty" >&2; exit 1; }
+      #     [ -n "$FOUNDRY_PROJECT_NAME" ] || { echo "Foundry project name is empty" >&2; exit 1; }
+      #     [ -n "$FOUNDRY_PROJECT_ID" ] || { echo "Foundry project ID is empty" >&2; exit 1; }
+      #     [ -n "$STORAGE_CONNECTION_STRING" ] || { echo "Storage connection string is empty" >&2; exit 1; }
+      #     echo "::add-mask::$KEY"
+      #     echo "::add-mask::$ENDPOINT"
+      #     echo "::add-mask::$DEPLOYMENT"
+      #     echo "::add-mask::$FOUNDRY_PROJECT_NAME"
+      #     echo "::add-mask::$FOUNDRY_PROJECT_ID"
+      #     echo "::add-mask::$STORAGE_CONNECTION_STRING"
+      #     printf '%s' "$KEY" | gh secret set AZURE_HARNESS_API_KEY --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$ENDPOINT" | gh secret set AZURE_HARNESS_ENDPOINT --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$DEPLOYMENT" | gh secret set AZURE_HARNESS_MODEL_DEPLOYMENT --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$FOUNDRY_PROJECT_NAME" | gh secret set AZURE_FOUNDRY_PROJECT_NAME --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$FOUNDRY_PROJECT_ID" | gh secret set AZURE_FOUNDRY_PROJECT_ID --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$STORAGE_CONNECTION_STRING" | gh secret set AZURE_STORAGE_CONNECTION_STRING --repo "$GITHUB_REPOSITORY"
+      #     printf '%s' "$KV_OUT" | gh secret set AZURE_KEYVAULT_NAME --repo "$GITHUB_REPOSITORY"
+      #     gh secret list --repo "$GITHUB_REPOSITORY" | grep -E 'AZURE_(HARNESS_API_KEY|HARNESS_ENDPOINT|HARNESS_MODEL_DEPLOYMENT|FOUNDRY_PROJECT_NAME|FOUNDRY_PROJECT_ID|STORAGE_CONNECTION_STRING|KEYVAULT_NAME)'
