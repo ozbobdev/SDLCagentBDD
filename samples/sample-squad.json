@@ -3,67 +3,165 @@
   "teamLeader": {
     "role": "Squad leader",
     "name": "TBD",
+    "taskTypes": ["architecture_discussion", "design_review", "incident_analysis"],
+    "complexity": ["medium", "high"],
+    "volume": "normal",
+    "model": "sdlc-auto",
     "contact": {
       "email": "leader@example.com",
       "slack": "@squad-leader"
     }
   },
+  "routing": {
+    "model": "sdlc-auto",
+    "levels": {
+      "senior": {
+        "complexity": ["medium", "high"],
+        "volume": "normal",
+        "note": "Normal and high complexity work; the router escalates high complexity to the strongest model."
+      },
+      "junior": {
+        "complexity": ["low"],
+        "volume": "high",
+        "note": "High volume and low complexity work; the router uses the high-volume / cost-optimised models."
+      }
+    },
+    "taskTypes": [
+      "chatbot_knowledge",
+      "code_generation",
+      "pr_review",
+      "architecture_discussion",
+      "design_review",
+      "debugging",
+      "incident_analysis"
+    ]
+  },
   "roles": [
     {
       "role": "Product Owner",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "po@example.com",
-        "slack": "@product-owner"
-      }
+      "taskTypes": ["architecture_discussion", "design_review"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "po-senior@example.com", "slack": "@product-owner-senior" }
+    },
+    {
+      "role": "Product Owner",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["chatbot_knowledge"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "po-junior@example.com", "slack": "@product-owner-junior" }
     },
     {
       "role": "Project Manager",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "pm@example.com",
-        "slack": "@project-manager"
-      }
+      "taskTypes": ["incident_analysis", "architecture_discussion"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "pm-senior@example.com", "slack": "@project-manager-senior" }
     },
     {
-      "role": "Senior Developer",
+      "role": "Project Manager",
+      "level": "junior",
       "name": "TBD",
-      "contact": {
-        "email": "senior-dev@example.com",
-        "slack": "@senior-dev"
-      }
+      "taskTypes": ["chatbot_knowledge"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "pm-junior@example.com", "slack": "@project-manager-junior" }
+    },
+    {
+      "role": "Developer",
+      "level": "senior",
+      "name": "TBD",
+      "taskTypes": ["code_generation", "pr_review", "debugging", "design_review"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "senior-dev@example.com", "slack": "@senior-dev" }
+    },
+    {
+      "role": "Developer",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["code_generation", "pr_review"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "junior-dev@example.com", "slack": "@junior-dev" }
     },
     {
       "role": "UI Developer",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "ui-dev@example.com",
-        "slack": "@ui-dev"
-      }
+      "taskTypes": ["code_generation", "pr_review", "architecture_discussion"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "ui-dev-senior@example.com", "slack": "@ui-dev-senior" }
+    },
+    {
+      "role": "UI Developer",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["code_generation"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "ui-dev-junior@example.com", "slack": "@ui-dev-junior" }
     },
     {
       "role": "API Developer",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "api-dev@example.com",
-        "slack": "@api-dev"
-      }
+      "taskTypes": ["code_generation", "pr_review", "architecture_discussion"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "api-dev-senior@example.com", "slack": "@api-dev-senior" }
+    },
+    {
+      "role": "API Developer",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["code_generation"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "api-dev-junior@example.com", "slack": "@api-dev-junior" }
     },
     {
       "role": "DB Developer",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "db-dev@example.com",
-        "slack": "@db-dev"
-      }
+      "taskTypes": ["code_generation", "pr_review", "architecture_discussion"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "db-dev-senior@example.com", "slack": "@db-dev-senior" }
+    },
+    {
+      "role": "DB Developer",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["code_generation"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "db-dev-junior@example.com", "slack": "@db-dev-junior" }
     },
     {
       "role": "Tester",
+      "level": "senior",
       "name": "TBD",
-      "contact": {
-        "email": "tester@example.com",
-        "slack": "@tester"
-      }
+      "taskTypes": ["debugging", "pr_review", "incident_analysis"],
+      "complexity": ["medium", "high"],
+      "volume": "normal",
+      "contact": { "email": "tester-senior@example.com", "slack": "@tester-senior" }
+    },
+    {
+      "role": "Tester",
+      "level": "junior",
+      "name": "TBD",
+      "taskTypes": ["code_generation", "chatbot_knowledge"],
+      "complexity": ["low"],
+      "volume": "high",
+      "contact": { "email": "tester-junior@example.com", "slack": "@tester-junior" }
     }
   ]
 }

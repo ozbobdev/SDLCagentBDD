@@ -3,15 +3,12 @@
 This folder contains a sample squad and a sample application to demonstrate the SDLCdocs workflow.
 
 ## Sample squad
-- `sample-squad.json` defines roles:
-  - Squad leader
-  - Product Owner
-  - Project Manager
-  - Senior Developer
-  - UI Developer
-  - API Developer
-  - DB Developer
-  - Tester
+- `sample-squad.json` defines roles, each as a **senior** and a **junior** member:
+  - Squad leader (senior-level routing)
+  - Product Owner, Project Manager, Developer, UI Developer, API Developer, DB Developer, Tester
+  - **Senior**: normal and medium/high complexity work (design reviews, debugging, architecture, incidents).
+  - **Junior**: high-volume, low-complexity work.
+  - Each member lists `taskTypes`, `complexity` and `volume`; the top-level `routing` block defines the levels and task types. These are sent to the model router (`sdlc-auto`) as hints, see [plan.md](../plan.md).
 
 ## Sample application
 - **OpenAPI 3.0 API**
