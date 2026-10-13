@@ -14,7 +14,7 @@ function Initialize-SdlcDocsEnvironment {
         [string]$GitHubRepo
     )
 
-    $HARNESS_RG = "rg-sdlcdocs-harness"
+    $HARNESS_RG = "rg-sdlcdocs-harness-aue"
     $SAMPLE_APP_RG = "rg-sdlcdocs-sample-app"
     $TF_BACKEND_RG = "rg-sdlcdocs-tfstate"
     $TF_BACKEND_STORAGE_ACCOUNT = "sdlcdocstfstate001"

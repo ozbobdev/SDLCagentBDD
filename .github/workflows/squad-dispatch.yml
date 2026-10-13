@@ -1,0 +1,93 @@
+name: Squad dispatch to Azure Harness
+
+# Watches issues, comments and PR labels and hands labelled work to the Azure
+# Harness orchestrator so the GitHub cloud agent spends no tokens on it.
+# Only the `dispatch` step receives Azure/orchestrator settings, through a protected environment.
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue or PR number
+        required: true
+      labels:
+        description: Comma separated labels (for example squad,squad:dev,level:junior,type:code_generation)
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: squad-dispatch-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  allocate:
+    # Ignore bots (including the Harness GitHub App) to prevent loops
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      !endsWith(github.actor, '[bot]') &&
+      (github.event_name != 'issue_comment' || startsWith(github.event.comment.body, '/squad'))
+    runs-on: ubuntu-latest
+    environment: azure-harness-dispatch
+    steps:
+      - name: Build work item from labels
+        id: item
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || inputs.issue_number }}
+          EVENT_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}${{ join(github.event.pull_request.labels.*.name, ',') }}
+          INPUT_LABELS: ${{ inputs.labels }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          labels="${INPUT_LABELS:-$EVENT_LABELS}"
+          case ",$labels," in *,squad,*|*,squad:*) ;; *)
+            if [ "$EVENT_NAME" != "issue_comment" ] && [ "$EVENT_NAME" != "workflow_dispatch" ]; then
+              echo "send=false" >> "$GITHUB_OUTPUT"; echo "No squad label; leaving to cloud agent/humans."; exit 0
+            fi ;; esac
+          pick() { echo "$labels" | tr ',' '\n' | grep "^$1:" | head -n1 | cut -d: -f2; }
+          level="$(pick level)"; level="${level:-senior}"
+          complexity="$(pick complexity)"; complexity="${complexity:-medium}"
+          type="$(pick type)"
+          member="$(pick squad)"
+          volume="normal"; [ "$level" = "junior" ] && volume="high"
+          echo "$labels" | tr ',' '\n' | grep -qx "volume:high" && volume="high"
+          item=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg n "$ISSUE_NUMBER" --arg ev "$EVENT_NAME" \
+            --arg level "$level" --arg complexity "$complexity" --arg type "$type" --arg member "$member" --arg volume "$volume" \
+            '{repo:$repo, number:($n|tonumber), event:$ev, role:$member, level:$level, complexity:$complexity, taskType:$type, volume:$volume, model:"sdlc-auto"}')
+          echo "send=true" >> "$GITHUB_OUTPUT"
+          echo "item=$item" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login (OIDC)
+        if: steps.item.outputs.send == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Dispatch to orchestrator
+        if: steps.item.outputs.send == 'true'
+        shell: bash
+        env:
+          ORCHESTRATOR_URL: ${{ vars.ORCHESTRATOR_URL }}
+          ORCHESTRATOR_AUDIENCE: ${{ vars.ORCHESTRATOR_AUDIENCE }}
+          ITEM: ${{ steps.item.outputs.item }}
+        run: |
+          token=$(az account get-access-token --resource "$ORCHESTRATOR_AUDIENCE" --query accessToken -o tsv)
+          echo "::add-mask::$token"
+          # Idempotency key: one active work item per issue/PR and label set
+          key=$(echo "$ITEM" | sha256sum | cut -c1-32)
+          curl --fail-with-body -sS -X POST "$ORCHESTRATOR_URL/work-items" \
+            -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            -H "Idempotency-Key: $key" -d "$ITEM"

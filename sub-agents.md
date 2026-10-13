@@ -67,6 +67,7 @@ The Copilot SDK can use a Microsoft Foundry endpoint with BYOK for a **local SDK
 6. **Monitoring and observability**: App Insights, logs, and dashboards.
 
 ## Model choices
+- **Model routing**: requests to model `sdlc-auto` are routed by task type, complexity and volume; see [azure-harness/README.md](./azure-harness/README.md) and [plan.md](./plan.md).
 - **Generalist LLM**: for orchestrator and natural language tasks.
 - **Specialized models**: smaller or fine-tuned models for BDD generation, code analysis, or screenshot captioning.
 - **Vision models**: for screenshot analysis and cropping.

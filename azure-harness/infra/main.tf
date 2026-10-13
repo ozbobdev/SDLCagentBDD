@@ -60,6 +60,26 @@ resource "azurerm_cognitive_deployment" "chat" {
   }
 }
 
+resource "azurerm_cognitive_deployment" "router" {
+  for_each             = var.additional_model_deployments
+  name                 = each.key
+  cognitive_account_id = azurerm_cognitive_account.harness.id
+
+  model {
+    format  = "OpenAI"
+    name    = each.value.model_name
+    version = each.value.version
+  }
+
+  sku {
+    name     = each.value.sku_name
+    capacity = each.value.capacity
+  }
+
+  # Deployments on one account are created serially to avoid conflicts
+  depends_on = [azurerm_cognitive_deployment.chat]
+}
+
 resource "azurerm_cognitive_account_project" "harness" {
   name                 = var.foundry_project_name
   cognitive_account_id = azurerm_cognitive_account.harness.id

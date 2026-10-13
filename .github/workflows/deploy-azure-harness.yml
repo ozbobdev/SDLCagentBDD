@@ -6,15 +6,15 @@ on:
       location:
         description: "Azure location"
         required: false
-        default: "WestUS2"
+        default: "australiaeast"
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  LOCATION: ${{ github.event.inputs.location || 'WestUS2' }}
-  HARNESS_RG: rg-sdlcdocs-harness
+  LOCATION: ${{ github.event.inputs.location || 'australiaeast' }}
+  HARNESS_RG: rg-sdlcdocs-harness-aue
   TF_BACKEND_RG: rg-sdlcdocs-tfstate
   TF_BACKEND_STORAGE: sdlcdocstfstate001
   TF_BACKEND_CONTAINER: tfstate

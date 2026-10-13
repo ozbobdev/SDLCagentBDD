@@ -99,3 +99,12 @@ Expected effect: the cloud agent's tokens are spent only on unlabelled or explic
 - Router/provider in TypeScript/Node (proposed default).
 - Self-hosted gateway, not APIM (can add later).
 - Provider serves local SDK and Azure orchestrator only, not the GitHub-hosted cloud agent.
+
+## Status
+- Done: routing-config, router-core (18 tests), foundry-deployments (applied; 5 deployments in rg-sdlcdocs-harness-aue), provider-endpoint (live-tested), squad-model-mapping (sample-squad.json), squad-dispatch-workflow (workflow file), docs.
+- Remaining: orchestrator-intake and orchestrator-integration (Container Apps hosting, GitHub App), copilot-byok-wiring, observability-cost, eval-tuning.
+
+### Orchestrator, Container Apps, App Insights (code complete, not yet deployed)
+- azure-harness/orchestrator: intake (Entra JWT), routed model calls, GitHub App client, App Insights events; 13 unit tests pass.
+- Terraform: sdlc-appinsights, Log Analytics, Foundry connection, ACR, Container App; 002SetupAzure.ps1 -DeployOrchestrator creates Entra/OIDC identities, builds the image and stores outputs.
+- See ai-squad.md.

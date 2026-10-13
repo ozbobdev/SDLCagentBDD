@@ -1,0 +1,31 @@
+{
+  "virtualModel": "sdlc-auto",
+  "defaultTaskType": "chatbot_knowledge",
+  "highVolumeThresholdPerMinute": 30,
+  "taskTypes": {
+    "chatbot_knowledge":       { "normal": "gpt-5.6-terra", "high": "gpt-6.1-sol", "highVolume": "gpt-6-astra" },
+    "code_generation":         { "normal": "gpt-5.6-terra", "high": "gpt-6.1-sol", "highVolume": "gpt-4o-mini", "highVolumeMaxComplexity": "low" },
+    "pr_review":               { "normal": "gpt-5.6-terra", "high": "gpt-6.1-sol", "highVolume": "gpt-5.6-terra" },
+    "architecture_discussion": { "normal": "gpt-5.6-terra", "high": "gpt-6.1-sol" },
+    "design_review":           { "normal": "gpt-6.1-sol",   "high": "gpt-6.1-sol" },
+    "debugging":               { "normal": "gpt-6.1-sol",   "high": "gpt-6.1-sol" },
+    "incident_analysis":       { "normal": "gpt-6.1-sol",   "high": "gpt-6.1-sol" }
+  },
+  "lowComplexityModel": "gpt-4o-mini",
+  "costOptimisedModel": "gpt-6-sol",
+  "fallbackChain": ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-terra", "gpt-4o-mini"],
+  "levels": {
+    "senior": { "complexity": ["medium", "high"], "volume": "normal" },
+    "junior": { "complexity": ["low"], "volume": "high" }
+  },
+  "reasoningEffort": { "low": "low", "medium": "medium", "high": "high" },
+  "longContextTokens": 100000,
+  "keywords": {
+    "incident_analysis": ["incident", "outage", "postmortem", "sev1", "sev2"],
+    "debugging": ["stack trace", "exception", "debug", "root cause", "crash"],
+    "design_review": ["design review", "rfc", "design doc"],
+    "architecture_discussion": ["architecture", "trade-off", "tradeoff"],
+    "pr_review": ["pull request", "code review", "review this diff"],
+    "code_generation": ["implement", "write a function", "generate code", "unit test"]
+  }
+}
