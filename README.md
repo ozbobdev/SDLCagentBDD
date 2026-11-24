@@ -5,6 +5,7 @@ Document-driven software development lifecycle repository. The workflow uses Git
 ## Repository contents
 
 - `sub-agents.md`, `github.md` — architecture proposals and GitHub integration notes.
+- `squad-plan.md` — phased plan for local Squad setup and collaboration.
 - `agents/` — agent prompt material.
 - `samples/` — sample squad and sample application.
 - `infra/`, `azure-harness/` — Azure setup scripts and Terraform for Path A Prompt Agent support infrastructure.
